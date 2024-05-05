@@ -1,0 +1,77 @@
+En el archivo "prospecto.php", en la líneas 15-23 aparece lo siguiente:
+
+$result = mysqli_query($link, $query) or die("Query 1 failed");
+
+if ($result) {
+	echo json_encode("Registro Insertado correctamente");
+	exit();
+}else{
+	echo json_encode("Error al insertar registro");
+	exit();
+}
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Clasificación NIST:
+      CWE (Common Weakness Enumeration): Podríamos considerar buscar una CWE específica que coincida con la naturaleza de la vulnerabilidad. Por ejemplo, CWE-209 (Error de control de flujo durante la generación de excepciones), CWE-703 (Error de control de flujo durante la generación de excepciones), entre otros, podrían ser relevantes.
+
+      Impacto: La falta de manejo adecuado de los errores de la consulta puede permitir que un atacante realice operaciones no autorizadas o cause daño a la base de datos.
+
+      Tipo de vulnerabilidad: Podría considerarse una vulnerabilidad de seguridad de la aplicación web, específicamente relacionada con la manipulación inadecuada de errores de base de datos.
+
+En dichas líneas de código, se muestran detalles específicos de error, lo cuál puede ser útil para los atacantes, debido a la información sobre la estructura de la base de datos y podría facilitar ataques.
+Surge dado que el código muestra detalles específicos de los errores que ocurren, lo cual puede ser peligroso en un entorno de producción. Exponer detalles de errores puede revelar información sensible sobre la estructura de la base de datos, el esquema de la base de datos, o incluso credenciales y otros datos confidenciales.
+Solución:  En lugar de mostrar mensajes de error detallados, hay que mostrar mensajes genéricos al usuario como se muestra a continuación:
+
+$result = mysqli_query($link, $query);
+
+if ($result) {
+    echo json_encode("Registro Insertado correctamente");
+    exit();
+} else {
+    echo json_encode("Error al insertar registro");
+    exit();
+}
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Clasificación NIST:
+
+      Data Validation: Esta solución no aborda directamente la validación de datos, que es fundamental para prevenir ataques como inyección de SQL. Para mejorar en este aspecto, se deberían implementar técnicas de validación de datos, como el uso de sentencias preparadas o consultas parametrizadas para evitar la inyección de SQL. Esto ayudaría a mitigar la vulnerabilidad y mejorar la seguridad del sistema.
+
+        
+      Error Handling: La solución proporciona un manejo básico de errores al verificar si la consulta SQL se ejecutó correctamente. Sin embargo, el uso de die() para finalizar el script en caso de error puede no ser la mejor práctica, ya que no proporciona un manejo de errores robusto y no ofrece la oportunidad de recuperación o registro de errores adecuado. Se podría mejorar utilizando estructuras más elaboradas de manejo de errores, como excepciones en lugar de terminar abruptamente el script.
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Samuel:
+Responsabilidad: Implementar un manejo de errores mejorado que no revele detalles específicos de los errores.
+
+php
+Copy code
+$result = mysqli_query($link, $query);
+Explicación: Samuel eliminó el uso de die("Query 1 failed") que mostraba un mensaje de error específico cuando la consulta SQL fallaba. Esta corrección ayuda a prevenir que información sobre errores internos de la base de datos se exponga directamente a los usuarios o atacantes, lo cual podría ser utilizado para afinar ataques.
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Paola:
+Responsabilidad: Mejorar la respuesta al usuario en caso de éxito o fallo de la inserción, asegurando que la información entregada no exponga detalles del sistema.
+
+php
+Copy code
+if ($result) {
+    echo json_encode("Registro Insertado correctamente");
+    exit();
+} else {
+    echo json_encode("Error al insertar registro");
+    exit();
+}
+Explicación: Paola se centró en estandarizar las respuestas entregadas al usuario, asegurando que sean genéricas y no revelen información sobre la naturaleza del error. Esto reduce el riesgo de que se exponga la estructura o estado de la base de datos, contribuyendo a una mejor seguridad general del sistema.
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Isac:
+Responsabilidad: Propone y supervisa la implementación de prácticas de validación de datos y estructuras avanzadas de manejo de errores.
+Sugerencia Adicional:
+
+php
+Copy code
+if ($result) {
+    echo json_encode("Registro Insertado correctamente");
+} else {
+    logError(mysqli_error($link));  // Función hipotética para registrar errores internamente
+    echo json_encode("Error al insertar registro");
+}
+exit();
+Explicación: Isac sugiere que además de manejar los errores de forma que no se expongan al usuario, se deben registrar internamente para que los administradores del sistema puedan investigar y abordar las causas subyacentes sin comprometer la seguridad. Esto es parte de un enfoque de seguridad en capas donde los errores se manejan de forma que no interrumpan abruptamente el flujo del programa y proporcionen medios para una revisión posterior sin revelar información al usuario.
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
