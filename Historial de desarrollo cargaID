@@ -1,0 +1,151 @@
+## El código "cargaId.php" maneja la carga de archivos de imagen para los usuarios, pero contiene varias vulnerabilidades de seguridad importantes que podrían afectar negativamente tanto a los usuarios como al sistema en sí, aquí se describen las vulnerabilidades detectadas:
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+```
+[$usr = $_POST['usuario'];](https://gitlab.com/xihh87/cs-2024-1/-/blob/main/iberobank/php/cargaId.php?ref_type=heads#L3)
+[$img = $_FILES['imagen']['name'];](https://gitlab.com/xihh87/cs-2024-1/-/blob/main/iberobank/php/cargaId.php?ref_type=heads#L4)
+[$ruta = "img/".$usr.".png";](https://gitlab.com/xihh87/cs-2024-1/-/blob/main/iberobank/php/cargaId.php?ref_type=heads#L10)
+[move_uploaded_file($_FILES['imagen']['tmp_name'], "../".$ruta);](https://gitlab.com/xihh87/cs-2024-1/-/blob/main/iberobank/php/cargaId.php?ref_type=heads#L13)
+```
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+1. Vulnerabilidad de Carga de Archivos
+
+Impacto: Permite a un atacante cargar archivos maliciosos que podrían ejecutarse en el servidor, comprometiendo la seguridad del mismo y de todos los usuarios del sistema. Un ataque exitoso podría resultar en el robo de datos sensibles, alteración de la funcionalidad del sitio web, o incluso tomar control total del servidor web.
+
+Beneficio de la Corrección: Asegurar que solo se puedan cargar tipos de archivos seguros y previstos reduce el riesgo de ejecución de código malicioso, protegiendo tanto la infraestructura del servidor como los datos de los usuarios.
+
+2. Vulnerabilidad de Escritura de Archivos
+
+Impacto: Los atacantes podrían sobrescribir archivos importantes, borrar datos o realizar modificaciones no autorizadas, afectando la integridad de la información almacenada en el servidor.
+
+Beneficio de la Corrección: Implementar un sistema que genere nombres de archivo únicos o maneje versiones previene la sobreescritura accidental o maliciosa de archivos, manteniendo la integridad de los datos.
+
+3. Falta de Saneamiento en Entradas de Usuario (Path Traversal)
+
+Impacto: Un atacante podría manipular las entradas para acceder a directorios y archivos fuera del contexto permitido, potencialmente accediendo a información confidencial o crítica del sistema.
+
+Beneficio de la Corrección: Sanear y validar las entradas para evitar path traversal asegura que las operaciones de archivo se realicen dentro de los límites seguros y designados, protegiendo los datos del sistema y de los usuarios.
+
+4. Falta de Mensajes de Error Específicos
+
+Impacto: Los usuarios legítimos pueden encontrar dificultades para entender por qué sus operaciones fallan, lo que podría resultar en una mala experiencia de usuario y posiblemente en un soporte técnico incrementado.
+
+Beneficio de la Corrección: Proporcionar mensajes de error claros y específicos mejora la experiencia del usuario al hacer que el sistema sea más comprensible y fácil de usar, y puede reducir la carga sobre el soporte técnico al clarificar las causas de los errores.
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+## Aqui esta el codigo corregido el cual implementa validaciones de tipo de archivo, saneamiento de entradas y maneja mejor los errores, lo que mejora significativamente la seguridad y la usabilidad del script de carga de archivos.
+
+```
+<?php
+include "config.php";
+$usr = $_POST['usuario'];
+$img = $_FILES['imagen']['name'];
+
+// Validar que el archivo sea una imagen
+$allowedExtensions = ['jpg', 'jpeg', 'png', 'gif'];
+$extension = pathinfo($img, PATHINFO_EXTENSION);
+
+if (!empty($img) && in_array(strtolower($extension), $allowedExtensions)) {
+
+    // Sanear el nombre de usuario para evitar path traversal
+    $usr = preg_replace("/[^a-zA-Z0-9]/", "", $usr);
+
+    // Definir ruta genérica segura
+    $ruta = "img/" . $usr . ".png";
+
+    // Mover el archivo dentro de la carpeta "img"
+    if (move_uploaded_file($_FILES['imagen']['tmp_name'], "../" . $ruta)) {
+        // Agregar ruta en la base de datos
+        //$consulta->actualizaRuta($ruta, $usr);
+        echo "ID cargado correctamente";
+    } else {
+        echo "Error al cargar el archivo.";
+    }
+} else {
+    // Si no hay archivo o el tipo de archivo no es permitido
+    echo "Imposible cargar ID: tipo de archivo no permitido o no especificado.";
+}
+exit();
+?>
+```
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+## Clasificación del Instituto Nacional de Estándares y Tecnología (NIST)
+
+1. Vulnerabilidad de Carga de Archivos
+
+Confidencialidad (C): Media. La capacidad de cargar archivos maliciosos podría permitir a un atacante acceder a datos confidenciales almacenados en el servidor.
+
+Integridad (I): Alta. La carga de archivos sin restricciones puede resultar en la modificación no autorizada de archivos o datos en el servidor.
+
+Disponibilidad (A): Media. Un ataque exitoso podría resultar en la alteración de la funcionalidad del servidor, afectando la disponibilidad de los servicios.
+
+2. Vulnerabilidad de Escritura de Archivos
+
+Confidencialidad (C): Baja. No afecta directamente la confidencialidad, a menos que se utilice para sobrescribir archivos de configuración o datos sensibles.
+
+Integridad (I): Alta. Permite a los usuarios sobrescribir archivos existentes, lo que puede modificar el contenido legítimo de manera no autorizada.
+
+Disponibilidad (A): Media. La sobreescritura de archivos críticos puede interrumpir los servicios ofrecidos por el servidor.
+
+3. Falta de Saneamiento en Entradas de Usuario (Path Traversal)
+
+Confidencialidad (C): Alta. Permite potencialmente acceder a archivos y directorios restringidos, revelando información confidencial.
+
+Integridad (I): Media. Aunque el ataque se centra más en el acceso que en la modificación, podría usarse para alterar archivos.
+
+Disponibilidad (A): Baja. No afecta directamente la disponibilidad a menos que se utilice para eliminar o corromper archivos necesarios para el funcionamiento del servidor.
+
+4. Falta de Mensajes de Error Específicos
+
+Confidencialidad (C): Baja. Principalmente afecta la usabilidad, no la seguridad de los datos en sí.
+
+Integridad (I): Baja. No afecta la integridad de los datos o sistemas.
+
+Disponibilidad (A): Baja. Impacta negativamente en la experiencia del usuario, pero no necesariamente en la disponibilidad del sistema.
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+• Hace referencia a las actividades de planeación desde los commits y responsables de issues.
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Parte corregida por Samuel:
+Samuel se encargó de validar el tipo de archivo para asegurarse de que solo se puedan cargar imágenes y no otros tipos de archivos que podrían ser maliciosos.
+
+php
+Copy code
+$allowedExtensions = ['jpg', 'jpeg', 'png', 'gif'];
+$extension = pathinfo($img, PATHINFO_EXTENSION);
+if (!empty($img) && in_array(strtolower($extension), $allowedExtensions)) {
+    ...
+}
+Explicación:
+Samuel implementó un filtro para permitir únicamente extensiones de archivo seguras como jpg, jpeg, png, y gif. Esto previene la carga de archivos potencialmente ejecutables que podrían contener scripts maliciosos. Al limitar los tipos de archivos permitidos, se mejora significativamente la seguridad del proceso de carga.
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Parte corregida por Paola:
+Paola se encargó de sanear el nombre de usuario para prevenir ataques de Path Traversal, asegurando que las rutas de archivo construidas no sean manipuladas para acceder a directorios no autorizados.
+
+php
+Copy code
+$usr = preg_replace("/[^a-zA-Z0-9]/", "", $usr);
+Explicación:
+Paola aplicó una expresión regular para eliminar cualquier carácter que no sea alfanumérico del nombre de usuario. Esto evita que se incluyan caracteres especiales que podrían ser utilizados para navegar a través de los directorios del sistema (como ../), protegiendo así el sistema de archivos del servidor.
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Parte corregida por Isac:
+Isac se ocupó de la lógica de manejo de errores y mensajes más claros para los usuarios, además de la parte final de la carga del archivo.
+
+php
+Copy code
+if (move_uploaded_file($_FILES['imagen']['tmp_name'], "../" . $ruta)) {
+    echo "ID cargado correctamente";
+} else {
+    echo "Error al cargar el archivo.";
+}
+...
+echo "Imposible cargar ID: tipo de archivo no permitido o no especificado.";
+Explicación:
+Isac mejoró el manejo de errores para dar a los usuarios mensajes más informativos sobre el estado de la carga. Estableció un mensaje claro si la carga del archivo falla y otro si el tipo de archivo no está permitido. Estos mensajes ayudan a los usuarios a entender qué fue mal y qué necesitan corregir, mejorando la usabilidad y la experiencia del usuario.
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+• Herramientas oficiales https://www.nist.gov/
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
